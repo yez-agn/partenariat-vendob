@@ -134,6 +134,20 @@ button:hover{
   margin-top:20px;
   border-left:4px solid #c62828;
 }
+
+.error-box {
+  background:#fff;
+  padding:12px;
+  border-radius:6px;
+  margin-top:12px;
+  font-size:13px;
+  color:#666;
+  border:1px solid #ffb3ba;
+}
+
+.error-box strong {
+  color:#c62828;
+}
 </style>
 </head>
 
@@ -248,8 +262,26 @@ J'accepte les conditions VENDOB
 <!-- ERROR -->
 <div class="error-message" id="errorMsg">
   <strong>⚠️ Erreur lors de l'envoi</strong>
-  <p id="errorText"></p>
-  <button onclick="location.reload()" style="margin-top:10px; padding:10px; font-size:14px;">Réessayer</button>
+  <p id="errorText" style="margin:10px 0;"></p>
+  
+  <div class="error-box">
+    <strong>📝 Pour corriger :</strong>
+    <ol style="margin:8px 0; padding-left:20px; font-size:12px;">
+      <li>Ouvrez https://dashboard.emailjs.com</li>
+      <li>Allez dans <strong>Templates</strong></li>
+      <li>Vérifiez le template <code>template_w9jwuga</code></li>
+      <li>Notez les noms des variables ({{...}})</li>
+      <li>Communiquez-les nous</li>
+    </ol>
+  </div>
+
+  <button onclick="location.reload()" style="margin-top:15px; background:#666; padding:10px; font-size:13px;">🔄 Réessayer</button>
+
+  <div style="margin-top:15px; padding:15px; background:#f9f9f9; border-radius:8px; border:1px solid #eee;">
+    <p style="margin:0 0 10px 0; font-size:14px; font-weight:bold; color:var(--orange);">📄 Contrat de partenariat VENDOB</p>
+    <p style="margin:0 0 12px 0; font-size:13px; color:#666;">Vous pouvez télécharger le contrat de partenariat :</p>
+    <button onclick="telechargerPDF()" style="background:var(--orange);">📥 Télécharger le contrat</button>
+  </div>
 </div>
 
 <!-- SUCCESS -->
@@ -276,7 +308,7 @@ J'accepte les conditions VENDOB
 
   <div style="margin-top:25px; padding:15px; background:#f5f5f5; border-radius:10px;">
     <p style="margin:0; font-size:14px; color:#666;">
-      Un email de confirmation a été envoyé à votre adresse email.<br>
+      ✉️ Un email de confirmation a été envoyé à votre adresse email.<br>
       <strong>Vérifiez votre boîte de réception et vos spams.</strong>
     </p>
   </div>
@@ -321,18 +353,23 @@ form.addEventListener("submit", function(e){
 
   reader.onload = function () {
 
-    // Préparer les données SANS l'image en base64 (trop lourd pour email)
-    const templateParams = {
-      nom: form.nom.value,
-      email: form.email.value,
-      telephone: form.telephone.value,
-      ville: form.ville.value,
-      boutique: form.boutique.value,
-      produits: form.produits.value || "Non spécifiés",
-      livraison: form.livraison.value,
-      mode_livraison: form.mode_livraison.value,
-      type_piece: form.type_piece.value,
-      nom_fichier: file.name
+    // VERSION 1 : Paramètres standards
+    let templateParams = {
+      to_email: form.email.value,
+      from_name: form.nom.value,
+      message: `
+Nouvelle demande de partenariat VENDOB:
+
+Nom: ${form.nom.value}
+Email: ${form.email.value}
+Téléphone: ${form.telephone.value}
+Ville: ${form.ville.value}
+Boutique: ${form.boutique.value}
+Produits: ${form.produits.value || 'Non spécifiés'}
+Livraison: ${form.livraison.value}
+Mode livraison: ${form.mode_livraison.value}
+Type pièce: ${form.type_piece.value}
+      `
     };
 
     let progress = 0;
@@ -370,17 +407,20 @@ form.addEventListener("submit", function(e){
     .catch((error) => {
       clearInterval(interval);
       console.error("Erreur EmailJS:", error);
+      console.error("Paramètres:", templateParams);
       
       form.style.display = "block";
       progressWrap.style.display = "none";
       errorMsg.style.display = "block";
       
       if (error.status === 0) {
-        errorText.innerText = "Erreur de connexion. Veuillez vérifier votre connexion Internet.";
+        errorText.innerText = "❌ Erreur de connexion. Vérifiez votre Internet.";
       } else if (error.status === 400) {
-        errorText.innerText = "Erreur de configuration. Veuillez contacter l'administrateur.";
+        errorText.innerText = "❌ Service ID ou Template ID incorrect.";
+      } else if (error.status === 422) {
+        errorText.innerText = "❌ Les variables du template ne correspondent pas. Vérifiez les {{...}} du template.";
       } else {
-        errorText.innerText = "Erreur lors de l'envoi du formulaire. Code: " + error.status;
+        errorText.innerText = "❌ Erreur : " + error.status + " - " + (error.text || "Erreur inconnue");
       }
     });
   };
@@ -392,4 +432,5 @@ form.addEventListener("submit", function(e){
 </script>
 
 </body>
-</html>
+  </html>
+  
